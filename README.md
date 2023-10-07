@@ -3,6 +3,8 @@ Repository for experiment code for our paper [Multiple Physics Pretraining (MPP)
 
 ## Installation
 
+Note: hosting for model weights is a WIP. This should be updated soon. 
+
 Our experiments were performed in an environment using slurm with modules using
 venv for package management. We've made sure non-DDP training on a single device is also viable, but using DDP
 in a non-slurm environment has not been verified and may require some hacking. 
