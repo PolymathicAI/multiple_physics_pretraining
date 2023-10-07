@@ -1,5 +1,5 @@
 # MPP
-Repository for experiment code for Multiple Physics Pretraining (MPP). 
+Repository for experiment code for our paper [Multiple Physics Pretraining (MPP)](https://arxiv.org/abs/2310.02994). 
 
 ## Installation
 
