@@ -28,6 +28,7 @@ source /path/to/new/virtual/environment/bin/activate
 
 ## Running
 
+Note: most experiments were performed in a multi-device context, so if you run into bugs on single device, please open an issue and let us know. 
 
 ### Slurm Launch
 Most parameters are tied to the configuration file and described in comments.
