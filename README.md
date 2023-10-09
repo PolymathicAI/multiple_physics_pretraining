@@ -24,7 +24,7 @@ finetuning gains even across relatively large gaps in physics like transfer betw
 
 Here is an example rollout for a compressible Navier-Stokes simulation from a model finetuned on only 800 examples:
 
-[![Compressible Navier-Stokes](http://img.youtube.com/vi/ndyFDhs62Bo/0.jpg)](http://www.youtube.com/watch?v=ndyFDhs62Bo "Compressible Navier-Stokes Rollout")
+[![Compressible Navier-Stokes](http://img.youtube.com/vi/NsBWGEXZC4U/0.jpg)](http://www.youtube.com/watch?v=NsBWGEXZC4U "Compressible Navier-Stokes Rollout")
 
 ## Installation
 
