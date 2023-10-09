@@ -8,7 +8,8 @@ space for prediction.
   <img src="./imgs/mpp_arch_v5.png" alt="Model architecture." width="600px" style="max-width:90%">
 </p>
 
-This forces models to learn multiple physics simulataneously:
+This forces models to learn multiple physics simulataneously and we see that despite the added difficulty of multi-task learning, our approach
+is able to generate competitive results with modern architectures trained on only one task.
 
 <p align="center">
   <img src="./imgs/pretraining_bars.png" alt="Loss on multiple physics problems after pretraining only." width="600px" style="max-width:90%">
