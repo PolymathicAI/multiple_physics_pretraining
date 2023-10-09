@@ -1,6 +1,30 @@
 # MPP
 Repository for experiment code for our paper [Multiple Physics Pretraining (MPP)](https://arxiv.org/abs/2310.02994). 
 
+Multiple Physics Pretraining (MPP) is a pretraining strategy in which multiple sets of dynamics are jointly normalized and embedded into a single
+space for prediction. 
+
+<p align="center">
+  <img src="./imgs/mpp_arch_v5.png" alt="Model architecture." width="600px" style="max-width:90%">
+</p>
+
+This forces models to learn multiple physics simulataneously:
+
+<p align="center">
+  <img src="./imgs/pretraining_bars.png" alt="Loss on multiple physics problems after pretraining only." width="600px" style="max-width:90%">
+</p>
+
+Understanding multiple physics expands the range of problems that our base models are well-suited for finetuning on and in our experiments generated significant 
+finetuning gains even across relatively large gaps in physics like transfer between incompressible and compressible flow:
+
+<p align="center">
+  <img src="./imgs/CNS_Xfer_Both.png" alt="Finetuning performance" width="600px" style="max-width:90%">
+</p>
+
+Here is an example rollout for a compressible Navier-Stokes simulation from a model finetuned on only 800 examples:
+
+[![Compressible Navier-Stokes](http://img.youtube.com/vi/ndyFDhs62Bo/0.jpg)](http://www.youtube.com/watch?v=ndyFDhs62Bo "Compressible Navier-Stokes Rollout")
+
 ## Installation
 
 Note: hosting for model weights is a WIP. This should be updated soon. 
