@@ -57,7 +57,7 @@ Note: most experiments were performed in a multi-device context, so if you run i
 
 ### Slurm Launch
 Most parameters are tied to the configuration file and described in comments.
-An example can be found in config/base_config.yaml. The namespace "base_config" is 
+An example can be found in config/mpp_avit_b_config.yaml. The namespace "basic_config" is 
 configured for pretraining. "finetune" is set up for finetuning on specific data.
 
 For slurm clusters, submit_batch.sh is used to launch jobs. This will need to be configured for your system.
@@ -80,7 +80,8 @@ python train_basic.py --run_name $run_name --config $config --yaml_config $yaml_
 
 ```
 📂 config
-  |_📄 base_config.yaml # Example config file for training jobs
+  |_📄 mpp_avit_b_config.yaml # Example config file for training jobs with AViT-B
+  |_📄 mpp_avit_*_config.yaml # Example config file for training jobs with AViT-*
 📂 data_utils # Code relating to datasets/loaders/samplers
   |_📄 datasets.py # General mixed-data sets. Contains the dictionary describing all available data.
   |_📄 hdf5_datasets.py # Individual classes relating to specific datasets. 
@@ -115,7 +116,7 @@ logic to mimic the API for compatibility with the rest of the code.
 1. Define NewDataset(data_utils.hdf_datasets.BaseHDF5DirectoryDataset) - This requires implementing _specifics, _get_specific_stats, _get_specific_bcs, and _reconstruct_sample
 methods. Examples can be found in data_utils.hdf5_datasets.py
 2. In data_utils/datasets.py, add your dataset to the DSET_NAME_TO_OBJECT dictionary. 
-3. In the config file (eg, config/base_config.yaml), add your new data to train or valid data paths (or both). This is structured [path, dset_type (defined in DSET_NAME_TO_OBJECT), filter_string], Note that these operate on a directory basis and will load all files in the directory containing the filter_string using the object corresponding to the dset type.
+3. In the config file (eg, config/mpp_avit_b_config.yaml), add your new data to train or valid data paths (or both). This is structured [path, dset_type (defined in DSET_NAME_TO_OBJECT), filter_string], Note that these operate on a directory basis and will load all files in the directory containing the filter_string using the object corresponding to the dset type.
 4. In the config file, ensure that n_states is sufficiently large to handle all state variables included. If this is oversized, it just adds additional memory usage proportional to embed_dim*n_states. 
 5. Train normally
 
