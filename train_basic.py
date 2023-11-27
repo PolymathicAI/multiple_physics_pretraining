@@ -16,7 +16,6 @@ from dadaptation import DAdaptAdam, DAdaptAdan
 from adan_pytorch import Adan
 from collections import OrderedDict
 import wandb
-import logging
 import pickle as pkl
 import gc
 from torchinfo import summary
@@ -32,38 +31,6 @@ except:
     from .utils import logging_utils
     from .utils.YParams import YParams
 
-
-def grad_norm(parameters):
-    with torch.no_grad():
-        total_norm = 0
-        for p in parameters:
-            if p.grad is not None:
-                total_norm += p.grad.data.pow(2).sum().item()
-        return total_norm**.5
-
-def grad_clone(parameters):
-    with torch.no_grad():
-        clones = []
-        for p in parameters:
-            if p.grad is not None:
-                clones.append(p.grad.clone())
-            else:
-                clones.append(torch.zeros_like(p))
-        return clones
-
-def param_norm(parameters):
-    with torch.no_grad():
-        total_norm = 0
-        for p in parameters:
-            total_norm += p.pow(2).sum().item()
-        return total_norm**.5
-
-def param_diff(params1, params2):
-    with torch.no_grad():
-        total_norm = 0
-        for p1, p2 in zip(params1, params2):
-            total_norm += (p2-p1).pow(2).sum().item()
-        return total_norm**.5
 
 def add_weight_decay(model, weight_decay=1e-5, inner_lr=1e-3, skip_list=()):
     """ From Ross Wightman at:
@@ -98,7 +65,6 @@ class Trainer:
         self.train_loss = nn.MSELoss()
         self.startEpoch = 0
         self.epoch = 0
-        self.debug_grad = params.debug_grad
         self.mp_type = torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else torch.half
 
         self.iters = 0
@@ -108,7 +74,6 @@ class Trainer:
         self.initialize_optimizer(self.params)
         if params.resuming:
             print("Loading checkpoint %s"%params.checkpoint_path)
-            print('LOADING CHECKPOINTTTTTT')
             self.restore_checkpoint(params.checkpoint_path)
         if params.resuming == False and params.pretrained:
             print("Starting from pretrained model at %s"%params.pretrained_ckpt_path)
@@ -207,18 +172,18 @@ class Trainer:
             model_state = checkpoint['model_state']
         else:
             model_state = checkpoint
-        try:
-            self.model.module.load_state_dict(model_state)
-        except:
-            new_state_dict = OrderedDict()
-            for key, val in model_state.items():
-                # Check if saved with/without DDP
-                if 'module.' == key[7:]:
+        try: # Try to load with DDP Wrapper
+            self.model.load_state_dict(model_state)
+        except: # If that fails, either try to load into module or strip DDP prefix
+            if hasattr(self.model, 'module'):
+                self.model.module.load_state_dict(model_state)
+            else:
+                new_state_dict = OrderedDict()
+                for key, val in model_state.items():
+                    # Failing means this came from DDP - strip the DDP prefix
                     name = key[7:]
-                else:
-                    name = 'module.' + key
-                new_state_dict[name] = val
-            self.model.load_state_dict(new_state_dict)
+                    new_state_dict[name] = val
+                self.model.load_state_dict(new_state_dict)
         
         if self.params.resuming:  #restore checkpoint is used for finetuning as well as resuming. If finetuning (i.e., not resuming), restore checkpoint does not load optimizer state, instead uses config specified lr.
             self.iters = checkpoint['iters']
@@ -262,11 +227,7 @@ class Trainer:
         self.single_print('train_loader_size', len(self.train_data_loader), len(self.train_dataset))
         for batch_idx, data in enumerate(self.train_data_loader):
             steps += 1
-            try:
-                inp, file_index, field_labels, bcs, tar = map(lambda x: x.to(self.device), data) 
-            except:
-                print('DATA FAILLL', inp.shape, field_labels.shape, tar.shape)
-                time.sleep(600)
+            inp, file_index, field_labels, bcs, tar = map(lambda x: x.to(self.device), data) 
             dset_type = self.train_dataset.sub_dsets[file_index[0]].type
             loss_counts[dset_type] += 1
             inp = rearrange(inp, 'b t c h w -> t b c h w')
@@ -298,26 +259,6 @@ class Trainer:
                 self.gscaler.scale(loss).backward()
                 backward_end = time.time()
                 backward_time = backward_end - forward_end
-                # Check gradient info if we're in debug mode
-                if self.debug_grad and ((1+batch_idx) % self.params.accum_grad == 1):
-                    with torch.no_grad():
-                        gnorm = self.params.accum_grad * grad_norm(self.model.parameters())
-                        grad_logs[dset_type] += gnorm
-                        grad_counts[dset_type] += 1
-                        last_grads = grad_clone(self.model.parameters())
-                elif self.debug_grad:
-                    with torch.no_grad():
-                        new_last_grads = grad_clone(self.model.parameters())
-                        new_grad = [p - g for p, g in zip(new_last_grads, last_grads)]
-                        gnorm = self.params.accum_grad * param_norm(new_grad)
-                        grad_logs[dset_type] += gnorm
-                        grad_counts[dset_type] += 1
-                        last_grads = new_last_grads
-                if self.debug_grad and self.model.require_backward_grad_sync:
-                    with torch.no_grad():
-                        self.gscaler.unscale_(self.optimizer)
-                        grad_diff = grad_norm(self.model.parameters())
-                        porig = [p.clone() for p in self.model.parameters()]
                 # Only take step once per accumulation cycle
                 optimizer_step = 0
                 if self.model.require_backward_grad_sync:
@@ -325,10 +266,6 @@ class Trainer:
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1)
                     self.gscaler.step(self.optimizer)
                     self.gscaler.update()
-                    if self.debug_grad:
-                        if self.global_rank == 0:
-                            pdiff = param_diff(self.model.parameters(), porig)
-                            self.single_print('grad_norm', grad_diff, 'last_step_size', pdiff, 'loss', loss.item(), 'data_shape', inp.shape)
                     self.optimizer.zero_grad(set_to_none=True)
                     if self.scheduler is not None:
                         self.scheduler.step()
@@ -355,15 +292,12 @@ class Trainer:
             for key in sorted(grad_counts.keys()):
                 dist.all_reduce(grad_counts[key].detach())
             
-
         for key in loss_logs.keys():
             logs[f'{key}/train_nrmse'] = loss_logs[key] / loss_counts[key]
-        for key in grad_logs.keys():
-            logs[f'{key}/train_grad_norm'] = grad_logs[key] / grad_counts[key]
+
         self.iters += steps
         if self.global_rank == 0:
             logs['iters'] = self.iters
-            logs['parameter norm'] = param_norm(self.model.parameters())
         self.single_print('all reduces executed!')
 
         return tr_time, data_time, logs
