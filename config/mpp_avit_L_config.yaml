@@ -69,6 +69,7 @@ basic_config: &basic_config
               ['~/PDEBench/2D/CFD/2D_Train_Turb', compNS, ''],
               ['~/PDEBench/2D/diffusion-reaction', 'diffre2d', ''],
               ]
+  append_datasets: [] # List of datasets to append to the input/output projections for finetuning
 
 
 finetune: &finetune
