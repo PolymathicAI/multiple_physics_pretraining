@@ -535,7 +535,7 @@ if __name__ == '__main__':
 
     params['log_to_wandb'] = (global_rank==0) and params['log_to_wandb']
     params['log_to_screen'] = (global_rank==0) and params['log_to_screen']
-    torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.benchmark = False
 
     if global_rank == 0:
         hparams = ruamelDict()

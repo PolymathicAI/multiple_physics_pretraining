@@ -51,6 +51,12 @@ submit_batch.sh will need to be updated to use the new environment:
 source /path/to/new/virtual/environment/bin/activate
 ```
 
+### Pretrained Weights
+
+Pretrained weights are available  [here.](https://drive.google.com/drive/folders/1Qaqa-RnzUDOO8-Gi4zlf4BE53SfWqDwx?usp=sharing) 
+
+When using pretrained models, choose the configuration (Ti/S/B/L) that corresponds to the respective file. 
+
 ## Running
 
 Note: most experiments were performed in a multi-device context, so if you run into bugs on single device, please open an issue and let us know. 
