@@ -17,7 +17,7 @@ master_node=$SLURMD_NODENAME
 VENVDIR=/venvs/
 run_name="demo"
 config="basic_config"   # options are "basic_config" for all or swe_only/comp_only/incomp_only/swe_and_incomp
-yaml_config="./config/base_config.yaml"
+yaml_config="./config/mpp_avit_b_config.yaml"
 
 
 module purge

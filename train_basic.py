@@ -203,19 +203,30 @@ class Trainer:
     def restore_checkpoint(self, checkpoint_path):
         """ Load model/opt from path """
         checkpoint = torch.load(checkpoint_path, map_location='cuda:{}'.format(self.local_rank))
+        if 'model_state' in checkpoint:
+            model_state = checkpoint['model_state']
+        else:
+            model_state = checkpoint
         try:
-            self.model.load_state_dict(checkpoint['model_state'])
+            self.model.module.load_state_dict(model_state)
         except:
             new_state_dict = OrderedDict()
-            for key, val in checkpoint['model_state'].items():
-                name = key[7:]
+            for key, val in model_state.items():
+                # Check if saved with/without DDP
+                if 'module.' == key[7:]:
+                    name = key[7:]
+                else:
+                    name = 'module.' + key
                 new_state_dict[name] = val
             self.model.load_state_dict(new_state_dict)
-        self.iters = checkpoint['iters']
+        
         if self.params.resuming:  #restore checkpoint is used for finetuning as well as resuming. If finetuning (i.e., not resuming), restore checkpoint does not load optimizer state, instead uses config specified lr.
+            self.iters = checkpoint['iters']
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             self.startEpoch = checkpoint['epoch']
             self.epoch = self.startEpoch
+        else:
+            self.iters = 0
         if self.params.pretrained:
             if self.params.freeze_middle:
                 self.model.module.freeze_middle()
@@ -230,6 +241,7 @@ class Trainer:
                 exp_proj += len(DSET_NAME_TO_OBJECT[add_on]._specifics()[2])
             self.model.module.expand_projections(exp_proj)
         checkpoint = None
+        self.model = self.model.to(self.device)
 
     def train_one_epoch(self):
         self.model.train()

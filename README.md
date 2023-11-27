@@ -28,8 +28,6 @@ Here is an example rollout for a compressible Navier-Stokes simulation from a mo
 
 ## Installation
 
-Note: hosting for model weights is a WIP. This should be updated soon. 
-
 Our experiments were performed in an environment using slurm with modules using
 venv for package management. We've made sure non-DDP training on a single device is also viable, but using DDP
 in a non-slurm environment has not been verified and may require some hacking. 
@@ -122,6 +120,8 @@ methods. Examples can be found in data_utils.hdf5_datasets.py
 5. Train normally
 
 ### For finetuning
+
+Model weights are available [here.](https://drive.google.com/drive/folders/1Qaqa-RnzUDOO8-Gi4zlf4BE53SfWqDwx?usp=sharing)
 
 If the finetuning is done using models trained AFTER the dataset is added, the instructions above are sufficient. If finetuning is performed
 using our provided weights, then this becomes slightly more complicated since the dimensions of the input/output projection matrix 
