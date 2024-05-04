@@ -60,6 +60,7 @@ class AViT(nn.Module):
             # Expand input projections
             temp_space_bag = SubsampledLinear(dim_in = self.space_bag.dim_in + expansion_amount, dim_out=self.space_bag.dim_out)
             temp_space_bag.weight[:, :self.space_bag.dim_in] = self.space_bag.weight
+            temp_space_bag.bias[:] = self.space_bag.bias[:]
             self.space_bag = temp_space_bag
             # expand output projections
             out_head = nn.ConvTranspose2d(self.debed.embed_dim//4, self.debed.out_chans+expansion_amount, kernel_size=4, stride=4)
