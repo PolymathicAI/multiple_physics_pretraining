@@ -1,5 +1,5 @@
 # MPP
-Repository for experiment code for our paper [Multiple Physics Pretraining (MPP)](https://arxiv.org/abs/2310.02994). 
+Repository for experiment code for our paper [Multiple Physics Pretraining (MPP)]([https://arxiv.org/abs/2310.02994](https://openreview.net/forum?id=DKSI3bULiZ)). 
 
 Multiple Physics Pretraining (MPP) is a pretraining strategy in which multiple sets of dynamics are jointly normalized and embedded into a single
 space for prediction. 
