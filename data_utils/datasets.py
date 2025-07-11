@@ -1,4 +1,4 @@
-""" 
+"""
 Remember to parameterize the file paths eventually
 """
 import torch
@@ -8,8 +8,8 @@ from torch.utils.data import Dataset, DataLoader, RandomSampler
 from torch.utils.data.distributed import DistributedSampler
 import os
 try:
-    from mixed_dset_sampler import MultisetSampler
-    from hdf5_datasets import *
+    from .mixed_dset_sampler import MultisetSampler
+    from .hdf5_datasets import *
 except ImportError:
     from .mixed_dset_sampler import MultisetSampler
     from .hdf5_datasets import *
@@ -19,6 +19,7 @@ import glob
 broken_paths = []
 # IF YOU ADD A NEW DSET MAKE SURE TO UPDATE THIS MAPPING SO MIXED DSET KNOWS HOW TO USE IT
 DSET_NAME_TO_OBJECT = {
+            'lsc240420': LSC240420Dataset,
             'swe': SWEDataset,
             'incompNS': IncompNSDataset,
             'diffre2d': DiffRe2DDataset,
@@ -28,7 +29,7 @@ DSET_NAME_TO_OBJECT = {
 def get_data_loader(params, paths, distributed, split='train', rank=0, train_offset=0):
     # paths, types, include_string = zip(*paths)
     dataset = MixedDataset(paths, n_steps=params.n_steps, train_val_test=params.train_val_test, split=split,
-                            tie_fields=params.tie_fields, use_all_fields=params.use_all_fields, enforce_max_steps=params.enforce_max_steps, 
+                            tie_fields=params.tie_fields, use_all_fields=params.use_all_fields, enforce_max_steps=params.enforce_max_steps,
                             train_offset=train_offset)
     # dataset = IncompNSDataset(paths[0], n_steps=params.n_steps, train_val_test=params.train_val_test, split=split)
     seed = torch.random.seed() if 'train'==split else 0
@@ -37,7 +38,7 @@ def get_data_loader(params, paths, distributed, split='train', rank=0, train_off
     else:
         base_sampler = RandomSampler
     sampler = MultisetSampler(dataset, base_sampler, params.batch_size,
-                               distributed=distributed, max_samples=params.epoch_size, 
+                               distributed=distributed, max_samples=params.epoch_size,
                                rank=rank)
     # sampler = DistributedSampler(dataset) if distributed else None
     dataloader = DataLoader(dataset,
@@ -48,14 +49,14 @@ def get_data_loader(params, paths, distributed, split='train', rank=0, train_off
                             drop_last=True,
                             pin_memory=torch.cuda.is_available())
     return dataloader, dataset, sampler
-    
+
 
 class MixedDataset(Dataset):
     def __init__(self, path_list=[], n_steps=1, dt=1, train_val_test=(.8, .1, .1),
-                  split='train', tie_fields=True, use_all_fields=True, extended_names=False, 
+                  split='train', tie_fields=True, use_all_fields=True, extended_names=False,
                   enforce_max_steps=False, train_offset=0):
         super().__init__()
-        # Global dicts used by Mixed DSET. 
+        # Global dicts used by Mixed DSET.
         self.train_offset = train_offset
         self.path_list, self.type_list, self.include_string = zip(*path_list)
         self.tie_fields = tie_fields
@@ -79,6 +80,10 @@ class MixedDataset(Dataset):
         self.offsets[0] = -1
 
         self.subset_dict = self._build_subset_dict()
+
+        print("\n[DEBUG] Final subset_dict:")
+        for k, v in self.subset_dict.items():
+            print(f"  {k}: {v}")
 
     def get_state_names(self):
         name_list = []
@@ -131,6 +136,6 @@ class MixedDataset(Dataset):
             print('FAILED AT ', file_idx, local_idx, index,int(os.environ.get("RANK", 0)))
             thisvariabledoesntexist
         return x, file_idx, torch.tensor(self.subset_dict[self.sub_dsets[file_idx].get_name()]), bcs, y
-    
+
     def __len__(self):
         return sum([len(dset) for dset in self.sub_dsets])

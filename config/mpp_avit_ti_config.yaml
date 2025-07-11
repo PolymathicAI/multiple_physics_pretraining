@@ -1,6 +1,6 @@
 basic_config: &basic_config
   # Run settings
-  log_to_wandb: !!bool True # Use wandb integration
+  log_to_wandb: !!bool False # Use wandb integration
   log_to_screen: !!bool True # Log progress to screen.
   save_checkpoint: !!bool True # Save checkpoints
   checkpoint_save_interval: 10 # Save every # epochs - also saves "best" according to val loss
@@ -10,17 +10,17 @@ basic_config: &basic_config
   enable_amp: !!bool False # Use automatic mixed precision - blows up with low variance fields right now
   compile: !!bool False # Compile model - Does not currently work
   gradient_checkpointing: !!bool False # Whether to use gradient checkpointing - Slow, but lower memory
-  exp_dir: '~/MPP' # Output path
+  exp_dir: '/users/spandit/proj/MPP/results' # Output path
   log_interval: 1 # How often to log - Don't think this is actually implemented
   pretrained: !!bool False # Whether to load a pretrained model
   # wandb settings
-  project: 'project' 
+  project: 'project'
   group: 'debugging'
   entity: 'entity'
   # Training settings
   drop_path: 0.1
   batch_size: 1
-  max_epochs: 500
+  max_epochs: 200
   scheduler_epochs: -1
   epoch_size: 2000 # Artificial epoch size
   rescale_gradients: !!bool False # Activate hook that scales block gradients to norm 1
@@ -28,8 +28,8 @@ basic_config: &basic_config
   scheduler: 'cosine' # Only cosine implemented
   warmup_steps: 1000 # Warmup when not using DAdapt
   learning_rate: -1 # -1 means use DAdapt
-  weight_decay: 1e-3 
-  n_states: 12   # Number of state variables across the datasets - Can be larger than real number and things will just go unused
+  weight_decay: 1e-3
+  n_states: 3   # Number of state variables across the datasets - Can be larger than real number and things will just go unused
   state_names: ['Pressure', 'Vx', 'Vy', 'Density',  'Vx', 'Vy', 'Density', 'Pressure'] # Should be sorted
   dt: 1 # Striding of data - Not currently implemented > 1
   n_steps: 16 # Length of history to include in input
@@ -54,27 +54,19 @@ basic_config: &basic_config
   extended_names: !!bool False # Whether to use extended names - not currently implemented
   embedding_offset: 0  # Use when adding extra finetuning fields
   train_data_paths: [
-              ['~/PDEBench/2D/shallow-water', 'swe', ''],
-              ['~/PDEBench/2D/NS_incom', 'incompNS', ''],
-              ['~/PDEBench/2D/CFD/2D_Train_Rand', compNS, '128'],
-               ['~/PDEBench/2D/CFD/2D_Train_Rand', compNS, '512'],
-              ['~/PDEBench/2D/CFD/2D_Train_Turb', compNS, ''],
-              ['~/PDEBench/2D/diffusion-reaction', 'diffre2d', ''],
+              ['/lustre/scratch5/exempt/artimis/data/pdebench/2D/shallow-water', 'swe', ''],
+              ['/lustre/scratch5/exempt/artimis/data/pdebench/2D/diffusion-reaction', 'diffre2d', ''],
               ]
   valid_data_paths: [
-              ['~/PDEBench/2D/shallow-water', 'swe', ''],
-              ['~/PDEBench/2D/NS_incom', 'incompNS', ''],
-              ['~/PDEBench/2D/CFD/2D_Train_Rand', compNS, '128'],
-               ['~/PDEBench/2D/CFD/2D_Train_Rand', compNS, '512'],
-              ['~/PDEBench/2D/CFD/2D_Train_Turb', compNS, ''],
-              ['~/PDEBench/2D/diffusion-reaction', 'diffre2d', ''],
+              ['/lustre/scratch5/exempt/artimis/data/pdebench/2D/shallow-water', 'swe', ''],
+              ['/lustre/scratch5/exempt/artimis/data/pdebench/2D/diffusion-reaction', 'diffre2d', ''],
               ]
   append_datasets: [] # List of datasets to append to the input/output projections for finetuning
 
 
 finetune: &finetune
   <<: *basic_config
-  max_epochs: 500
+  max_epochs: 200
   train_val_test: [.8, .1, .1]
   accum_grad: 1
   pretrained: !!bool True
@@ -90,7 +82,7 @@ finetune: &finetune
   freeze_middle: !!bool False # Whether to freeze the middle layers of the model
   freeze_processor: !!bool False
   append_datasets: [] # List of datasets to append to the input/output projections for finetuning
-  
+
 
 frozen: &frozen
   <<: *finetune
