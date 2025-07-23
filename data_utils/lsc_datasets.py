@@ -7,9 +7,10 @@ import torch
 from torch.utils.data import Dataset
 
 class LscNpzDataset(Dataset):
-    def __init__(self, root_dir, n_steps=5, dt=1, split='train',
-                 train_val_test=(0.8, 0.1, 0.1), include_string=''):
-        self.root_dir = root_dir
+    def __init__(self, path, include_string='', n_steps=5, dt=1, split='train',
+                 train_val_test=(0.8, 0.1, 0.1), subname=None, extra_specific=False):
+        self.root_dir = path
+
         self.n_steps = n_steps
         self.dt = dt
         self.split = split
@@ -17,7 +18,7 @@ class LscNpzDataset(Dataset):
         self.include_string = include_string
 
         self.file_list = sorted([
-            f for f in os.listdir(root_dir)
+            f for f in os.listdir(self.root_dir)
             if f.endswith(".npz") and include_string in f
         ], key=self._extract_timestep)
 
@@ -60,4 +61,20 @@ class LscNpzDataset(Dataset):
         bcs = torch.zeros(2)  # placeholder for compatibility
 
         return x, bcs, y
+
+    @staticmethod
+    def _specifics():
+        time_index = 0                     # usually 0 if your data is [T, C, H, W]
+        sample_index = None               # if not multiple samples per file
+        field_names = ['v1', 'v2', ..., 'v8']  # name of your 8 channels
+        type = 'lsc_npz'
+        split_level = 'sample'            # or 'file' if you split by file
+        return time_index, sample_index, field_names, type, split_level
+
+    def _get_specific_stats(self, f=None):
+        total_timesteps = len(self.file_list)
+        return 1, total_timesteps
+
+    def _get_specific_bcs(self, f=None):
+        return [0, 0]  # 0 = non-periodic, 1 = periodic
 

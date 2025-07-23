@@ -16,7 +16,7 @@ except ImportError:
 import os
 import glob
 
-from npz_datasets import LscNpzDataset
+from .lsc_datasets import LscNpzDataset
 
 broken_paths = []
 # IF YOU ADD A NEW DSET MAKE SURE TO UPDATE THIS MAPPING SO MIXED DSET KNOWS HOW TO USE IT
@@ -25,7 +25,7 @@ DSET_NAME_TO_OBJECT = {
             'incompNS': IncompNSDataset,
             'diffre2d': DiffRe2DDataset,
             'compNS': CompNSDataset,
-            'lsc_npz': LscNpzDatase,
+            'lsc_npz': LscNpzDataset,
             }
 
 def get_data_loader(params, paths, distributed, split='train', rank=0, train_offset=0):

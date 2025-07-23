@@ -1,0 +1,21 @@
+ARGS: basic_config
+Initializing data on rank 0
+Initializing model on rank 0
+Model parameter count: 7282616
+wandb: ERROR api_key not configured (no-tty). call wandb.login(key=[your_api_key])
+Traceback (most recent call last):
+  File "/users/spandit/proj/MPP/mpp-spandit-npz/train_basic.py", line 554, in <module>
+    trainer.train()
+  File "/users/spandit/proj/MPP/mpp-spandit-npz/train_basic.py", line 409, in train
+    wandb.init(dir=self.params.experiment_dir, config=self.params, name=self.params.name, group=self.params.group,
+  File "/users/spandit/venv/mpp/lib/python3.11/site-packages/wandb/sdk/wandb_init.py", line 1166, in init
+    raise e
+  File "/users/spandit/venv/mpp/lib/python3.11/site-packages/wandb/sdk/wandb_init.py", line 1143, in init
+    wi.setup(kwargs)
+  File "/users/spandit/venv/mpp/lib/python3.11/site-packages/wandb/sdk/wandb_init.py", line 289, in setup
+    wandb_login._login(
+  File "/users/spandit/venv/mpp/lib/python3.11/site-packages/wandb/sdk/wandb_login.py", line 298, in _login
+    wlogin.prompt_api_key()
+  File "/users/spandit/venv/mpp/lib/python3.11/site-packages/wandb/sdk/wandb_login.py", line 228, in prompt_api_key
+    raise UsageError("api_key not configured (no-tty). call " + directive)
+wandb.errors.UsageError: api_key not configured (no-tty). call wandb.login(key=[your_api_key])

@@ -34,10 +34,10 @@ except:
 
 def add_weight_decay(model, weight_decay=1e-5, inner_lr=1e-3, skip_list=()):
     """ From Ross Wightman at:
-        https://discuss.pytorch.org/t/weight-decay-in-the-optimizers-is-a-bad-idea-especially-with-batchnorm/16994/3 
-        
-        Goes through the parameter list and if the squeeze dim is 1 or 0 (usually means bias or scale) 
-        then don't apply weight decay. 
+        https://discuss.pytorch.org/t/weight-decay-in-the-optimizers-is-a-bad-idea-especially-with-batchnorm/16994/3
+
+        Goes through the parameter list and if the squeeze dim is 1 or 0 (usually means bias or scale)
+        then don't apply weight decay.
         """
     decay = []
     no_decay = []
@@ -94,7 +94,7 @@ class Trainer:
             in_rank = self.global_rank
         if self.log_to_screen:
             print(f"Initializing data on rank {self.global_rank}")
-        self.train_data_loader, self.train_dataset, self.train_sampler = get_data_loader(params, params.train_data_paths, 
+        self.train_data_loader, self.train_dataset, self.train_sampler = get_data_loader(params, params.train_data_paths,
                           dist.is_initialized(), split='train', rank=in_rank, train_offset=self.params.embedding_offset)
         self.valid_data_loader, self.valid_dataset, _ = get_data_loader(params, params.valid_data_paths,
                                                                                  dist.is_initialized(),
@@ -106,19 +106,19 @@ class Trainer:
     def initialize_model(self, params):
         if self.params.model_type == 'avit':
             self.model = build_avit(params).to(device)
-        
+
         if self.params.compile:
             print('WARNING: BFLOAT NOT SUPPORTED IN SOME COMPILE OPS SO SWITCHING TO FLOAT16')
             self.mp_type = torch.half
             self.model = torch.compile(self.model)
-        
+
         if dist.is_initialized():
             self.model = DistributedDataParallel(self.model, device_ids=[self.local_rank],
                                                  output_device=[self.local_rank], find_unused_parameters=True)
-        
+
         self.single_print(f'Model parameter count: {sum([p.numel() for p in self.model.parameters()])}')
 
-    def initialize_optimizer(self, params): 
+    def initialize_optimizer(self, params):
         parameters = add_weight_decay(self.model, self.params.weight_decay) # Dont use weight decay on bias/scaling terms
         if params.optimizer == 'adam':
             if self.params.learning_rate < 0:
@@ -132,7 +132,7 @@ class Trainer:
                 self.optimizer = Adan(parameters, lr=params.learning_rate)
         elif params.optimizer == 'sgd':
             self.optimizer = optim.SGD(self.model.parameters(), lr=params.learning_rate, momentum=0.9)
-        else: 
+        else:
             raise ValueError(f"Optimizer {params.optimizer} not supported")
         self.gscaler = amp.GradScaler(enabled= (self.mp_type == torch.half and params.enable_amp))
 
@@ -143,9 +143,9 @@ class Trainer:
             sched_epochs = params.max_epochs
         if params.scheduler == 'cosine':
             if self.params.learning_rate < 0:
-                self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, 
+                self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer,
                                                                             last_epoch = (self.startEpoch*params.epoch_size) - 1,
-                                                                            T_max=sched_epochs*params.epoch_size, 
+                                                                            T_max=sched_epochs*params.epoch_size,
                                                                             eta_min=params.learning_rate / 100)
             else:
                 k = params.warmup_steps
@@ -184,7 +184,7 @@ class Trainer:
                     name = key[7:]
                     new_state_dict[name] = val
                 self.model.load_state_dict(new_state_dict)
-        
+
         if self.params.resuming:  #restore checkpoint is used for finetuning as well as resuming. If finetuning (i.e., not resuming), restore checkpoint does not load optimizer state, instead uses config specified lr.
             self.iters = checkpoint['iters']
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -201,7 +201,7 @@ class Trainer:
                 self.model.module.unfreeze()
             # See how much we need to expand the projections
             exp_proj = 0
-            # Iterate through the appended datasets and add on enough embeddings for all of them. 
+            # Iterate through the appended datasets and add on enough embeddings for all of them.
             for add_on in self.params.append_datasets:
                 exp_proj += len(DSET_NAME_TO_OBJECT[add_on]._specifics()[2])
             self.model.module.expand_projections(exp_proj)
@@ -227,13 +227,13 @@ class Trainer:
         self.single_print('train_loader_size', len(self.train_data_loader), len(self.train_dataset))
         for batch_idx, data in enumerate(self.train_data_loader):
             steps += 1
-            inp, file_index, field_labels, bcs, tar = map(lambda x: x.to(self.device), data) 
+            inp, file_index, field_labels, bcs, tar = map(lambda x: x.to(self.device), data)
             dset_type = self.train_dataset.sub_dsets[file_index[0]].type
             loss_counts[dset_type] += 1
             inp = rearrange(inp, 'b t c h w -> t b c h w')
             data_time += time.time() - data_start
             dtime = time.time() - data_start
-            
+
             self.model.require_backward_grad_sync = ((1+batch_idx) % self.params.accum_grad == 0)
             with amp.autocast(self.params.enable_amp, dtype=self.mp_type):
                 model_start = time.time()
@@ -242,7 +242,7 @@ class Trainer:
                 residuals = output - tar
                 # Differentiate between log and accumulation losses
                 tar_norm = (1e-7 + tar.pow(2).mean(spatial_dims, keepdim=True))
-                raw_loss = ((residuals).pow(2).mean(spatial_dims, keepdim=True) 
+                raw_loss = ((residuals).pow(2).mean(spatial_dims, keepdim=True)
                          / tar_norm)
                 # Scale loss for accum
                 loss = raw_loss.mean() / self.params.accum_grad
@@ -281,7 +281,7 @@ class Trainer:
         # If distributed, do lots of logging things
         if dist.is_initialized():
             for key in sorted(logs.keys()):
-                dist.all_reduce(logs[key].detach()) 
+                dist.all_reduce(logs[key].detach())
                 logs[key] = float(logs[key]/dist.get_world_size())
             for key in sorted(loss_logs.keys()):
                 dist.all_reduce(loss_logs[key].detach())
@@ -291,7 +291,7 @@ class Trainer:
                 dist.all_reduce(loss_counts[key].detach())
             for key in sorted(grad_counts.keys()):
                 dist.all_reduce(grad_counts[key].detach())
-            
+
         for key in loss_logs.keys():
             logs[f'{key}/train_nrmse'] = loss_logs[key] / loss_counts[key]
 
@@ -306,7 +306,7 @@ class Trainer:
         """
         Validates - for each batch just use a small subset to make it easier.
 
-        Note: need to split datasets for meaningful metrics, but TBD. 
+        Note: need to split datasets for meaningful metrics, but TBD.
         """
         # Don't bother with full validation set between epochs
         self.model.eval()
@@ -319,10 +319,10 @@ class Trainer:
             # There's something weird going on when i turn this off.
             with amp.autocast(False, dtype=self.mp_type):
                 field_labels = self.valid_dataset.get_state_names()
-                distinct_dsets = list(set([dset.title for dset_group in self.valid_dataset.sub_dsets 
+                distinct_dsets = list(set([dset.title for dset_group in self.valid_dataset.sub_dsets
                                            for dset in dset_group.get_per_file_dsets()]))
                 counts = {dset: 0 for dset in distinct_dsets}
-                logs = {} # 
+                logs = {} #
                 # Iterate through all folder specific datasets
                 for subset_group in self.valid_dataset.sub_dsets:
                     for subset in subset_group.get_per_file_dsets():
@@ -338,7 +338,7 @@ class Trainer:
                         else:
                             # Seed isn't important, just trying to mix up samples from different trajectories
                             temp_loader = torch.utils.data.DataLoader(subset, batch_size=self.params.batch_size,
-                                                                    num_workers=self.params.num_data_workers, 
+                                                                    num_workers=self.params.num_data_workers,
                                                                     shuffle=True, generator= torch.Generator().manual_seed(0),
                                                                     drop_last=True)
                         count = 0
@@ -349,7 +349,7 @@ class Trainer:
                                 break
                             count += 1
                             counts[dset_type] += 1
-                            inp, bcs, tar = map(lambda x: x.to(self.device), data) 
+                            inp, bcs, tar = map(lambda x: x.to(self.device), data)
                             # Labels come from the trainset - useful to configure an extra field for validation sets not included
                             labels = torch.tensor(self.train_dataset.subset_dict.get(subset.get_name(), [-1]*len(self.valid_dataset.subset_dict[subset.get_name()])),
                                                 device=self.device).unsqueeze(0).expand(tar.shape[0], -1)
@@ -359,21 +359,21 @@ class Trainer:
                             # And we want the comparison to be consistent
                             spatial_dims = tuple(range(output.ndim))[2:] # Assume 0, 1, 2 are T, B, C
                             residuals = output - tar
-                            nmse = (residuals.pow(2).mean(spatial_dims, keepdim=True) 
+                            nmse = (residuals.pow(2).mean(spatial_dims, keepdim=True)
                                     / (1e-7 + tar.pow(2).mean(spatial_dims, keepdim=True))).sqrt()#.mean()
                             logs[f'{dset_type}/valid_nrmse'] = logs.get(f'{dset_type}/valid_nrmse',0) + nmse.mean()
-                            logs[f'{dset_type}/valid_rmse'] = (logs.get(f'{dset_type}/valid_mse',0) 
+                            logs[f'{dset_type}/valid_rmse'] = (logs.get(f'{dset_type}/valid_mse',0)
                                                                 + residuals.pow(2).mean(spatial_dims).sqrt().mean())
-                            logs[f'{dset_type}/valid_l1'] = (logs.get(f'{dset_type}/valid_l1', 0) 
+                            logs[f'{dset_type}/valid_l1'] = (logs.get(f'{dset_type}/valid_l1', 0)
                                                                 + residuals.abs().mean())
 
                             for i, field in enumerate(self.valid_dataset.subset_dict[subset.type]):
                                 field_name = field_labels[field]
-                                logs[f'{dset_type}/{field_name}_valid_nrmse'] = (logs.get(f'{dset_type}/{field_name}_valid_nrmse', 0) 
+                                logs[f'{dset_type}/{field_name}_valid_nrmse'] = (logs.get(f'{dset_type}/{field_name}_valid_nrmse', 0)
                                                                                 + nmse[:, i].mean())
-                                logs[f'{dset_type}/{field_name}_valid_rmse'] = (logs.get(f'{dset_type}/{field_name}_valid_rmse', 0) 
+                                logs[f'{dset_type}/{field_name}_valid_rmse'] = (logs.get(f'{dset_type}/{field_name}_valid_rmse', 0)
                                                                                     + residuals[:, i:i+1].pow(2).mean(spatial_dims).sqrt().mean())
-                                logs[f'{dset_type}/{field_name}_valid_l1'] = (logs.get(f'{dset_type}/{field_name}_valid_l1', 0) 
+                                logs[f'{dset_type}/{field_name}_valid_l1'] = (logs.get(f'{dset_type}/{field_name}_valid_l1', 0)
                                                                             +  residuals[:, i].abs().mean())
                         else:
                             del(temp_loader)
@@ -386,7 +386,7 @@ class Trainer:
             logs['valid_nrmse'] = 0
             for dset_type in distinct_dsets:
                 logs['valid_nrmse'] += logs[f'{dset_type}/valid_nrmse']/len(distinct_dsets)
-            
+
             if dist.is_initialized():
                 for key in sorted(logs.keys()):
                     dist.all_reduce(logs[key].detach()) # There was a bug with means when I implemented this - dont know if fixed
@@ -394,7 +394,7 @@ class Trainer:
                     if 'rmse' in key:
                         logs[key] = logs[key]
             self.single_print('DONE SYNCING - NOW LOGGING')
-        return logs               
+        return logs
 
 
     def train(self):
@@ -406,16 +406,16 @@ class Trainer:
                 self.params.update_params(hpo_config)
                 params = self.params
             else:
-                wandb.init(dir=self.params.experiment_dir, config=self.params, name=self.params.name, group=self.params.group, 
+                wandb.init(dir=self.params.experiment_dir, config=self.params, name=self.params.name, group=self.params.group,
                            project=self.params.project, entity=self.params.entity, resume=True)
-                
+
         if self.sweep_id and dist.is_initialized():
             param_file = f"temp_hpo_config_{os.environ['SLURM_JOBID']}.pkl"
             if self.global_rank == 0:
                 with open(param_file, 'wb') as f:
                     pkl.dump(hpo_config, f)
             dist.barrier() # Stop until the configs are written by hacky MPI sub
-            if self.global_rank != 0: 
+            if self.global_rank != 0:
                 with open(param_file, 'rb') as f:
                     hpo_config = pkl.load(f)
             dist.barrier() # Stop until the configs are written by hacky MPI sub
@@ -427,7 +427,7 @@ class Trainer:
             self.params.update_params(hpo_config)
             params = self.params
             self.initialize_data(self.params) # This is the annoying redundant part - but the HPs need to be set from wandb
-            self.initialize_model(self.params) 
+            self.initialize_model(self.params)
             self.initialize_optimizer(self.params)
             self.initialize_scheduler(self.params)
         if self.global_rank == 0:
@@ -444,14 +444,14 @@ class Trainer:
 
             # with torch.autograd.detect_anomaly(check_nan=True):
             tr_time, data_time, train_logs = self.train_one_epoch()
-            
+
             valid_start = time.time()
             # Only do full validation set on last epoch - don't waste time
             if epoch==self.params.max_epochs-1:
                 valid_logs = self.validate_one_epoch(True)
             else:
                 valid_logs = self.validate_one_epoch()
-            
+
             post_start = time.time()
             train_logs.update(valid_logs)
             train_logs['time/train_time'] = valid_start-start
@@ -459,7 +459,7 @@ class Trainer:
             train_logs['time/train_compute_time'] = tr_time
             train_logs['time/valid_time'] = post_start-valid_start
             if self.params.log_to_wandb:
-                wandb.log(train_logs) 
+                wandb.log(train_logs)
             gc.collect()
             torch.cuda.empty_cache()
 
@@ -471,7 +471,7 @@ class Trainer:
                 if valid_logs['valid_nrmse'] <= best_valid_loss:
                     self.save_checkpoint(self.params.best_checkpoint_path)
                     best_valid_loss = valid_logs['valid_nrmse']
-                
+
                 cur_time = time.time()
                 self.single_print(f'Time for train {valid_start-start}. For valid: {post_start-valid_start}. For postprocessing:{cur_time-post_start}')
                 self.single_print('Time taken for epoch {} is {} sec'.format(epoch + 1, time.time()-start))
@@ -485,6 +485,8 @@ if __name__ == '__main__':
     parser.add_argument("--config", default='basic_config', type=str)
     parser.add_argument("--sweep_id", default=None, type=str, help='sweep config from ./configs/sweeps.yaml')
     args = parser.parse_args()
+    print (f"ARGS: {args.config}", flush=True)
+
     params = YParams(os.path.abspath(args.yaml_config), args.config)
     params.use_ddp = args.use_ddp
     # Set up distributed training
@@ -510,7 +512,7 @@ if __name__ == '__main__':
     params['checkpoint_path'] = os.path.join(expDir, 'training_checkpoints/ckpt.tar')
     params['best_checkpoint_path'] = os.path.join(expDir, 'training_checkpoints/best_ckpt.tar')
     params['old_checkpoint_path'] = os.path.join(params.old_exp_dir, 'training_checkpoints/best_ckpt.tar')
-    
+
     # Have rank 0 check for and/or make directory
     if  global_rank==0:
         if not os.path.isdir(expDir):
@@ -547,7 +549,7 @@ if __name__ == '__main__':
     trainer = Trainer(params, global_rank, local_rank, device, sweep_id=args.sweep_id)
     if args.sweep_id and trainer.global_rank==0:
         print(args.sweep_id, trainer.params.entity, trainer.params.project)
-        wandb.agent(args.sweep_id, function=trainer.train, count=1, entity=trainer.params.entity, project=trainer.params.project) 
+        wandb.agent(args.sweep_id, function=trainer.train, count=1, entity=trainer.params.entity, project=trainer.params.project)
     else:
         trainer.train()
     if params.log_to_screen:
