@@ -1,0 +1,26 @@
+# LSC NPZ Tiny Config - for quick tests
+
+batch_size: 2
+n_steps: 5        # n_his = 4, n_pred = 1
+patch_size: [16, 16]
+n_states: 1       # change based on your npz data channels
+embed_dim: 64
+processor_blocks: 2
+block_type: axial
+num_heads: 4
+
+# Normalization and scheduling
+normalize: true
+lr: 0.0005
+weight_decay: 1e-2
+train_val_test: [0.8, 0.1, 0.1]
+max_epochs: 3
+epoch_size: 10
+
+# Mixed dataset config
+datasets:
+  - name: lsc_npz
+    path: ./lsc_dataset
+    type: lsc_npz
+    include_string: ""    # optional filter
+
