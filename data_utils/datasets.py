@@ -106,7 +106,8 @@ class MixedDataset(Dataset):
                         'swe': [3],
                         'incompNS': [0, 1, 2],
                         'compNS': [0, 1, 2, 3],
-                        'diffre2d': [4, 5]
+                        'diffre2d': [4, 5],
+                        'lsc_npz': [0, 1, 2, 3]
                         }
         elif self.use_all_fields:
             cur_max = 0

@@ -228,6 +228,8 @@ class Trainer:
         for batch_idx, data in enumerate(self.train_data_loader):
             steps += 1
             inp, file_index, field_labels, bcs, tar = map(lambda x: x.to(self.device), data)
+            print(f"[DEBUG] field_labels = {field_labels.cpu().tolist()}")
+
             dset_type = self.train_dataset.sub_dsets[file_index[0]].type
             loss_counts[dset_type] += 1
             inp = rearrange(inp, 'b t c h w -> t b c h w')
@@ -350,7 +352,8 @@ class Trainer:
                             count += 1
                             counts[dset_type] += 1
                             inp, bcs, tar = map(lambda x: x.to(self.device), data)
-                            # Labels come from the trainset - useful to configure an extra field for validation sets not included
+                            # Labels come from the trainset - useful to configure an extra field for validation sets not includea
+
                             labels = torch.tensor(self.train_dataset.subset_dict.get(subset.get_name(), [-1]*len(self.valid_dataset.subset_dict[subset.get_name()])),
                                                 device=self.device).unsqueeze(0).expand(tar.shape[0], -1)
                             inp = rearrange(inp, 'b t c h w -> t b c h w')

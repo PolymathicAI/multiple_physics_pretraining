@@ -9,13 +9,14 @@ from torch.utils.data import Dataset
 class LscNpzDataset(Dataset):
     def __init__(self, path, include_string='', n_steps=5, dt=1, split='train',
                  train_val_test=(0.8, 0.1, 0.1), subname=None, extra_specific=False):
-        self.root_dir = path
 
+        self.root_dir = path
         self.n_steps = n_steps
         self.dt = dt
         self.split = split
         self.train_val_test = train_val_test
         self.include_string = include_string
+        self.type = 'lsc_npz'
 
         self.file_list = sorted([
             f for f in os.listdir(self.root_dir)
@@ -41,26 +42,42 @@ class LscNpzDataset(Dataset):
     def __len__(self):
         return len(self.indices)
 
+    def get_name(self, full_name=False):
+        return "lsc_npz"  # or whatever label you want to appear in logs
     def __getitem__(self, idx):
         idx = self.indices[idx]
         input_files = self.file_list[idx : idx + self.n_steps]
         target_file = self.file_list[idx + self.n_steps]
 
-        inputs = []
-        for f in input_files:
-            data = np.load(os.path.join(self.root_dir, f))["arr_0"]
-            inputs.append(torch.tensor(data, dtype=torch.float32))
+        # Fields to use as input/output channels
+        selected_fields = ['pressure_case', 'density_case', 'temperature_case']  # adjust as needed
 
-        target = np.load(os.path.join(self.root_dir, target_file))["arr_0"]
-        target = torch.tensor(target, dtype=torch.float32)
+        def load_tensor(fpath):
+            with np.load(fpath) as data:
+                arrays = []
+                for key in selected_fields:
+                    if key in data:
+                        arr = data[key]
+                        if arr.ndim == 2:
+                            arrays.append(arr)
+                        else:
+                            raise ValueError(f"{key} in {fpath} is not 2D")
+                    else:
+                        raise KeyError(f"{key} missing in {fpath}")
+                stacked = np.stack(arrays, axis=0)  # shape: [C, H, W]
+            return torch.tensor(stacked, dtype=torch.float32)
 
-        x = torch.stack(inputs, dim=0)     # shape: [T, C, H, W]
-        y = target                         # shape: [C, H, W]
+        # Load input sequence
+        input_tensors = [load_tensor(os.path.join(self.root_dir, f)) for f in input_files]
+        x = torch.stack(input_tensors, dim=0)  # shape: [T, C, H, W]
 
-        # No BCs used in your case
-        bcs = torch.zeros(2)  # placeholder for compatibility
+        # Load target
+        y = load_tensor(os.path.join(self.root_dir, target_file))  # shape: [C, H, W]
+
+        bcs = torch.zeros(2)  # placeholder
 
         return x, bcs, y
+
 
     @staticmethod
     def _specifics():

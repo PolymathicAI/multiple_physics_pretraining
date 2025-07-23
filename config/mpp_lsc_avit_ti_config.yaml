@@ -1,9 +1,9 @@
 basic_config: &basic_config
   # Run settings
-  log_to_wandb: !!bool True # Use wandb integration
+  log_to_wandb: !!bool False # Use wandb integration
   log_to_screen: !!bool True # Log progress to screen.
   save_checkpoint: !!bool True # Save checkpoints
-  checkpoint_save_interval: 10 # Save every # epochs - also saves "best" according to val loss
+  checkpoint_save_interval: 5 # Save every # epochs - also saves "best" according to val loss
   debug_grad: !!bool True # Compute gradient/step_sizes/ect for debugging
   true_time: !!bool False # Debugging setting - sets num workers to zero and activates syncs
   num_data_workers: 6 # Generally pulling 8 cpu per process, so using 6 for DL - not sure if best ratio
@@ -54,10 +54,10 @@ basic_config: &basic_config
   extended_names: !!bool False # Whether to use extended names - not currently implemented
   embedding_offset: 0  # Use when adding extra finetuning fields
   train_data_paths: [
-              ['/lustre/scratch4/exempt/artimis/data/lsc240420_fp16_half', 'lsc_npz', ''],
+              ['/lustre/scratch5/exempt/artimis/data/lsc240420_fp16_half', 'lsc_npz', ''],
               ]
   valid_data_paths: [
-              ['/lustre/scratch4/exempt/artimis/data/lsc240420_fp16_half', 'lsc_npz', ''],
+              ['/lustre/scratch5/exempt/artimis/data/lsc240420_fp16_half', 'lsc_npz', ''],
               ]
   append_datasets: [] # List of datasets to append to the input/output projections for finetuning
 
