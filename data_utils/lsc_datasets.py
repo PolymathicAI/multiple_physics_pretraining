@@ -60,35 +60,42 @@ class LscNpzDataset(Dataset):
                           ]
 
         def load_tensor(fpath):
-            with np.load(fpath) as data:
-                arrays = []
-                for key in selected_fields:
-                    if key in data:
-                        arr = data[key]
-                        try:
-                            arr = arr.astype(np.float32)
-                        except Exception as e:
-                            raise ValueError(f"Could not convert {key} in {fpath} to float32: {e}")
+            try:
+                with np.load(fpath) as data:
+                    arrays = []
+                    for key in selected_fields:
+                        if key in data:
+                            try:
+                                arr = arr.astype(np.float32)
+                            except Exception as e:
+                                raise ValueError(f"Could not convert {key} in {fpath} to float32: {e}")
 
-                        if arr.ndim == 2:
-                            arrays.append(arr)
+                            if arr.ndim == 2:
+                                arrays.append(arr)
+                            else:
+                                raise ValueError(f"{key} in {fpath} is not 2D")
                         else:
-                            raise ValueError(f"{key} in {fpath} is not 2D")
-                    else:
-                        raise KeyError(f"{key} missing in {fpath}")
-                #stacked = np.stack(arrays, axis=0)  # shape: [C, H, W]
-                stacked = np.stack(arrays, axis=0)[:, :560, :192]
+                            raise KeyError(f"{key} missing in {fpath}")
+                    stacked = np.stack(arrays, axis=0)[:, :560, :192]
+                    return torch.tensor(stacked, dtype=torch.float32)
+            except Exception as e:
+                print(f"[SKIP] Failed to load {fpath} — {type(e).__name__}: {e}")
+                return None
 
-            return torch.tensor(stacked, dtype=torch.float32)
+        input_tensors = []
+        for f in input_files:
+            tensor = load_tensor(os.path.join(self.root_dir, f))
+            if tensor is None:
+                raise ValueError(f"[SKIP] Invalid input at idx={idx}, skipping sample.")
+            input_tensors.append(tensor)
 
-        # Load input sequence
-        input_tensors = [load_tensor(os.path.join(self.root_dir, f)) for f in input_files]
-        x = torch.stack(input_tensors, dim=0)  # shape: [T, C, H, W]
+        x = torch.stack(input_tensors, dim=0)
 
-        # Load target
-        y = load_tensor(os.path.join(self.root_dir, target_file))  # shape: [C, H, W]
-        bcs = torch.zeros(2)  # placeholder
+        y = load_tensor(os.path.join(self.root_dir, target_file))
+        if y is None:
+            raise ValueError(f"[SKIP] Invalid target at idx={idx}, skipping sample.")
 
+        bcs = torch.zeros(2)
         return x, bcs, y
 
     @staticmethod

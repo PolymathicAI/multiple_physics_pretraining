@@ -40,7 +40,7 @@ basic_config: &basic_config
   block_type: 'axial' # Which type of block to use - if axial, next two fields must be set to define axial ops
   time_type: 'attention' # Conditional on block type
   space_type: 'axial_attention' # Conditional on block type
-  tie_fields: !!bool False # Whether to use 1 embedding per field per data
+  tie_fields: !!bool True # Whether to use 1 embedding per field per data
   embed_dim: 192 # Dimension of internal representation - 192/384/768/1024 for Ti/S/B/L
   num_heads: 3 # Number of heads for attention - 3/6/12/16 for Ti/S/B/L
   processor_blocks: 12 # Number of transformer blocks in the backbone - 12/12/12/24 for Ti/S/B/L
