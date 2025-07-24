@@ -17,6 +17,7 @@ class LscNpzDataset(Dataset):
         self.train_val_test = train_val_test
         self.include_string = include_string
         self.type = 'lsc_npz'
+        self.field_names = self._specifics()[2]
 
         self.file_list = sorted([
             f for f in os.listdir(self.root_dir)
@@ -74,7 +75,8 @@ class LscNpzDataset(Dataset):
                             raise ValueError(f"{key} in {fpath} is not 2D")
                     else:
                         raise KeyError(f"{key} missing in {fpath}")
-                stacked = np.stack(arrays, axis=0)  # shape: [C, H, W]
+                #stacked = np.stack(arrays, axis=0)  # shape: [C, H, W]
+                stacked = np.stack(arrays, axis=0)[:, :560, :192]
 
             return torch.tensor(stacked, dtype=torch.float32)
 
