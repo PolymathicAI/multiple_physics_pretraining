@@ -18,6 +18,7 @@ class LscNpzDataset(Dataset):
         self.include_string = include_string
         self.type = 'lsc_npz'
         self.field_names = self._specifics()[2]
+        self.title = 'lsc_npz'
 
         self.file_list = sorted([
             f for f in os.listdir(self.root_dir)
@@ -109,4 +110,8 @@ class LscNpzDataset(Dataset):
 
     def _get_specific_bcs(self, f=None):
         return [0, 0]  # 0 = non-periodic, 1 = periodic
+
+    def get_per_file_dsets(self):
+        # No sub-files — treat whole dataset as one logical file
+        return [self]
 
