@@ -44,13 +44,18 @@ class LscNpzDataset(Dataset):
 
     def get_name(self, full_name=False):
         return "lsc_npz"  # or whatever label you want to appear in logs
+
     def __getitem__(self, idx):
         idx = self.indices[idx]
         input_files = self.file_list[idx : idx + self.n_steps]
         target_file = self.file_list[idx + self.n_steps]
 
         # Fields to use as input/output channels
-        selected_fields = ['pressure_case', 'density_case', 'temperature_case']  # adjust as needed
+        selected_fields = [
+                           'pressure_throw', 'density_throw', 'temperature_throw',
+                           'density_case', 'pressure_case', 'temperature_case',
+                           'Uvelocity', 'Wvelocity'
+                          ]
 
         def load_tensor(fpath):
             with np.load(fpath) as data:
@@ -58,6 +63,11 @@ class LscNpzDataset(Dataset):
                 for key in selected_fields:
                     if key in data:
                         arr = data[key]
+                        try:
+                            arr = arr.astype(np.float32)
+                        except Exception as e:
+                            raise ValueError(f"Could not convert {key} in {fpath} to float32: {e}")
+
                         if arr.ndim == 2:
                             arrays.append(arr)
                         else:
@@ -65,6 +75,7 @@ class LscNpzDataset(Dataset):
                     else:
                         raise KeyError(f"{key} missing in {fpath}")
                 stacked = np.stack(arrays, axis=0)  # shape: [C, H, W]
+
             return torch.tensor(stacked, dtype=torch.float32)
 
         # Load input sequence
@@ -73,19 +84,21 @@ class LscNpzDataset(Dataset):
 
         # Load target
         y = load_tensor(os.path.join(self.root_dir, target_file))  # shape: [C, H, W]
-
         bcs = torch.zeros(2)  # placeholder
 
         return x, bcs, y
 
-
     @staticmethod
     def _specifics():
-        time_index = 0                     # usually 0 if your data is [T, C, H, W]
-        sample_index = None               # if not multiple samples per file
-        field_names = ['v1', 'v2', ..., 'v8']  # name of your 8 channels
+        time_index = 0
+        sample_index = None
+        field_names = [
+            'pressure_throw', 'density_throw', 'temperature_throw',
+            'density_case', 'pressure_case', 'temperature_case',
+            'Uvelocity', 'Wvelocity'
+        ]
         type = 'lsc_npz'
-        split_level = 'sample'            # or 'file' if you split by file
+        split_level = 'sample'
         return time_index, sample_index, field_names, type, split_level
 
     def _get_specific_stats(self, f=None):
