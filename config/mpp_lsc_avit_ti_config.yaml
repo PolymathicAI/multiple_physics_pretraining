@@ -10,7 +10,7 @@ basic_config: &basic_config
   enable_amp: !!bool False # Use automatic mixed precision - blows up with low variance fields right now
   compile: !!bool False # Compile model - Does not currently work
   gradient_checkpointing: !!bool False # Whether to use gradient checkpointing - Slow, but lower memory
-  exp_dir: '~/MPP' # Output path
+  exp_dir: '/users/spandit/mpp/mpp-runs' # Output path
   log_interval: 1 # How often to log - Don't think this is actually implemented
   pretrained: !!bool False # Whether to load a pretrained model
   # wandb settings
