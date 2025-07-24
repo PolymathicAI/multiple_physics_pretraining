@@ -49,7 +49,7 @@ basic_config: &basic_config
   # Data settings
   train_val_test: [.8, .1, .1]
   augmentation: !!bool False # Augmentation not implemented
-  use_all_fields: !!bool True # Prepopulate the field metadata dictionary from dictionary in datasets
+  use_all_fields: !!bool False # Prepopulate the field metadata dictionary from dictionary in datasets
   tie_batches: !!bool False # Force everything in batch to come from one dset
   extended_names: !!bool False # Whether to use extended names - not currently implemented
   embedding_offset: 0  # Use when adding extra finetuning fields
